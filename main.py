@@ -1,7 +1,7 @@
 import discord
 import os
 import pymongo
-from pymongo import MongoClient
+from database import DataBase
 from dotenv import load_dotenv
 from discord.ext import commands
 
@@ -10,10 +10,7 @@ client = commands.Bot(command_prefix='.')
 
 load_dotenv()
 
-cluster = MongoClient(os.getenv('DBURL'))
-db = cluster["GoalBotDB"]
-collection = db["Teams"]
-
+db = DataBase(os.getenv('DBURL'))
 
 @client.event
 async def on_ready():
@@ -39,26 +36,13 @@ async def ping(ctx):
 
 @client.command(aliases=['add'])
 async def add_team(ctx, team):
-    guildIDQuery = {"_id": ctx.guild.id}
-    if collection.count_documents(guildIDQuery) == 0:
-        post = {"_id": ctx.guild.id, "team": [team]}
-        collection.insert_one(post)
-    else:
-        guild = collection.find(guildIDQuery)
-        for result in guild:
-            listOfTeams = result["team"]
-        listOfTeams.append(team)
-        collection.update_one({"_id": ctx.guild.id}, {"$set": {"team": listOfTeams}})
+    db.Add_Team(ctx.guild.id, team)
 
 
 @client.command(aliases=['list'])
 async def list_teams(ctx):
-    listOfTeams = []
-    for document in collection.find({"_id": ctx.guild.id, "team": {"$exists": True}}):
-        listOfTeams = document['team']
-
-    if len(listOfTeams) > 0:
-        await ctx.send("\n".join(listOfTeams))
+    if db.List_Teams(ctx.guild.id) is True:
+        await ctx.send(db.listOfTeams)
     else:
         await ctx.send("There no teams in database.")
 
