@@ -51,4 +51,16 @@ async def add_team(ctx, team):
         collection.update_one({"_id": ctx.guild.id}, {"$set": {"team": listOfTeams}})
 
 
+@client.command(aliases=['list'])
+async def list_teams(ctx):
+    listOfTeams = []
+    for document in collection.find({"_id": ctx.guild.id, "team": {"$exists": True}}):
+        listOfTeams = document['team']
+
+    if len(listOfTeams) > 0:
+        await ctx.send("\n".join(listOfTeams))
+    else:
+        await ctx.send("There no teams in database.")
+
+
 client.run(os.getenv('TOKEN'))
