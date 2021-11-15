@@ -2,15 +2,23 @@ import discord
 import os
 import pymongo
 from database import DataBase
+from twitter import Twitter
 from dotenv import load_dotenv
 from discord.ext import commands
 
-# client = discord.Client()
-client = commands.Bot(command_prefix='.')
-
 load_dotenv()
 
+# client = discord.Client()
+client = commands.Bot(command_prefix='.')
+twitter = Twitter(consumer_key=os.getenv('CONSUMERKEY'),
+                  consumer_secret=os.getenv('CONSUMERSECRET'),
+                  access_token=os.getenv('ACCESSTOKEN'),
+                  access_token_secret=os.getenv('ACCESSTOKENSECRET'),
+                  bearer_token=os.getenv('BEARERTOKEN'))
+
+
 db = DataBase(os.getenv('DBURL'))
+
 
 @client.event
 async def on_ready():
