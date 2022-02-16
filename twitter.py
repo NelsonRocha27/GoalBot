@@ -1,77 +1,169 @@
 import tweepy
+from dotenv import load_dotenv
+import os
 
 
 # override tweepy.StreamListener to add logic to on_status
-class MyStreamListener(tweepy.Stream):
-    user_id = None
+class StreamListener(tweepy.Stream):
+    twitter = None
 
-    def Set_User_ID(self, user_id):
-        self.user_id = user_id
+    def Set_Twitter(self, twitter):
+        self.twitter = twitter
 
     def on_status(self, status):
-        if status.author.id != self.user_id:
+        if status.author.id not in self.twitter.author_id:
             return
         print(status)
+        self.twitter.Set_Current_Tweet(status)
+        if self.twitter.Check_If_Contains_Video():
+            if self.twitter.Look_For_Keywords_In_Tweet():
+                self.twitter.new_tweet = True
+                pass
+        else:
+            pass
 
 
 class Twitter:
     auth = None
     api = None
-    client = None
     consumer_key = None
     consumer_secret = None
     access_token = None
     access_token_secret = None
     bearer_token = None
-
-    def __init__(self, consumer_key, consumer_secret, access_token, access_token_secret, bearer_token):
-        self.consumer_key = consumer_key
-        self.consumer_secret = consumer_secret
-        self.access_token = access_token
-        self.access_token_secret = access_token_secret
-        self.bearer_token = bearer_token
-        self.auth = tweepy.AppAuthHandler(self.consumer_key,
-                                          self.consumer_secret)
-        self.api = tweepy.API(self.auth)
-        self.client = tweepy.Client(
-            bearer_token=self.bearer_token,
-            consumer_key=self.consumer_key,
-            consumer_secret=self.consumer_secret)
-
-        # for status in self.lol.get_users_tweets(40019154):
-        #   print(status)
-        for tweet in self.api.user_timeline(screen_name='Reuters', tweet_mode='extended', count=1):
-            if hasattr(tweet, "extended_entities"):
-                if 'media' in tweet.extended_entities:
-                    if 'video_info' in tweet.extended_entities['media'][0]:
-                        self.last_tweet = tweet.created_at
-
-
-class TwitterAccount(Twitter):
-    screen_name = None
+    screen_names = None
     last_tweet_time = None
     author_id = None
     current_tweet = None
+    list_of_keywords = None
+    guild_id = None
+    new_tweet = False
+    text_channel_id = None
+    link = None
 
-    def __init__(self, screen_name):
-        self.screen_name = screen_name
-        self.Get_Last_Tweet_Info(self)
+    def __init__(self, screen_names):
+        load_dotenv()
+
+        self.Init_Class_Variables()
+
+        self.consumer_key = os.getenv('CONSUMERKEY')
+        self.consumer_secret = os.getenv('CONSUMERSECRET')
+        self.access_token = os.getenv('ACCESSTOKEN')
+        self.access_token_secret = os.getenv('ACCESSTOKENSECRET')
+        self.bearer_token = os.getenv('BEARERTOKEN')
+        self.auth = tweepy.AppAuthHandler(self.consumer_key,
+                                          self.consumer_secret)
+        self.api = tweepy.API(self.auth)
+        self.Set_Twitter_Account(screen_names)
+
+    def Init_Class_Variables(self):
+        self.auth = None
+        self.api = None
+        self.consumer_key = None
+        self.consumer_secret = None
+        self.access_token = None
+        self.access_token_secret = None
+        self.bearer_token = None
+        self.screen_names = []
+        self.last_tweet_time = None
+        self.author_id = []
+        self.current_tweet = None
+        self.list_of_keywords = []
+        self.guild_id = None
+        self.new_tweet = False
+        self.text_channel_id = None
+        self.link = None
+
+    def Set_Twitter_Account(self, screen_names):
+        self.screen_names = screen_names
+        self.Get_Last_Tweet_Info()
+        self.Set_Listener()
 
     def Get_Last_Tweet_Info(self):
-        for tweet in self.api.user_timeline(screen_name=self.screen_name, tweet_mode='extended', count=1):
-            self.author_id = tweet.author.id
-            self.last_tweet_time = tweet.created_at
-            # if hasattr(tweet, "extended_entities"):
-            #   if 'media' in tweet.extended_entities:
-            #      if 'video_info' in tweet.extended_entities['media'][0]:
-            #         self.last_tweet_time = tweet.created_at
+        for screen_name in self.screen_names:
+            for tweet in self.api.user_timeline(screen_name=screen_name, tweet_mode='extended', count=1):
+                self.author_id.append(tweet.author.id)
+                if self.last_tweet_time is None or tweet.created_at > self.last_tweet_time:
+                    self.last_tweet_time = tweet.created_at
+
+    def Set_Guild_Id(self, guild_id):
+        self.guild_id = guild_id
+
+    def Get_Guild_Id(self):
+        return self.guild_id
+
+    def Set_New_Tweet(self, val):
+        self.new_tweet = val
+
+    def Get_New_Tweet(self):
+        return self.new_tweet
+
+    def Set_Current_Tweet(self, tweet):
+        self.current_tweet = tweet
+
+    def Get_Current_Tweet(self):
+        return self.current_tweet
+
+    def Set_Text_Channel_ID(self, channel_id):
+        self.text_channel_id = channel_id
+
+    def Get_Text_Channel_ID(self):
+        return self.text_channel_id
+
+    def Get_Tweet_Link(self):
+        return self.link
+
+    def Set_List_Of_Keywords(self, list_of_keywords):
+        self.list_of_keywords = list_of_keywords
+
+    def Check_If_Contains_Video(self):
+        if hasattr(self.current_tweet, 'extended_tweet'):
+            if 'extended_entities' in self.current_tweet.extended_tweet:
+                if 'video_info' in self.current_tweet.extended_tweet['extended_entities']['media'][0]:
+                    if self.current_tweet.created_at > self.last_tweet_time:
+                        self.last_tweet_time = self.current_tweet.created_at
+                        self.link = self.current_tweet.extended_tweet['extended_entities']['media'][0].get(
+                            'expanded_url')
+                        return True
+                    else:
+                        print('This tweet is older.')
+                else:
+                    print('There is no video in tweet {0}.'.format(self.current_tweet))
+            else:
+                print('There are no extended entities in tweet {0}.'.format(self.current_tweet))
+        elif hasattr(self.current_tweet, 'extended_entities'):
+            if 'video_info' in self.current_tweet.extended_entities['media'][0]:
+                if self.current_tweet.created_at > self.last_tweet_time:
+                    self.last_tweet_time = self.current_tweet.created_at
+                    self.link = self.current_tweet.extended_entities['media'][0].get('expanded_url')
+                    return True
+                else:
+                    print('This tweet is older.')
+            else:
+                print('There is no video in tweet {0}.'.format(self.current_tweet))
+        else:
+            print('There is no extended tweet or extended entities in tweet {0}.'.format(self.current_tweet))
+
+        return False
+
+    def Look_For_Keywords_In_Tweet(self):
+        if self.list_of_keywords is not None:
+            for keyword in self.list_of_keywords:
+                if keyword in self.current_tweet.text:
+                    return True
+        else:
+            print('No list of keywords provided.')
+        return False
 
     def Set_Listener(self):
-        myStream = MyStreamListener(consumer_key=self.consumer_key,
-                                    consumer_secret=self.consumer_secret,
-                                    access_token=self.access_token,
-                                    access_token_secret=self.access_token_secret)
+        tweetStream = StreamListener(consumer_key=self.consumer_key,
+                                     consumer_secret=self.consumer_secret,
+                                     access_token=self.access_token,
+                                     access_token_secret=self.access_token_secret)
 
-        myStream.Set_User_ID(self.author_id)
-        myStream.filter(follow=[self.author_id])
-        myStream.sample(threaded=True)
+        tweetStream.Set_Twitter(self)
+        try:
+            tweetStream.filter(follow=self.author_id, threaded=True)
+            tweetStream.sample(threaded=True)
+        except Exception:
+            pass

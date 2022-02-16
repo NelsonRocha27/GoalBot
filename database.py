@@ -5,7 +5,7 @@ class DataBase:
     cluster = None
     db = None
     collection = None
-    listOfTeams = None
+    listOfTeams = []
 
     def __init__(self, url):
         self.cluster = MongoClient(url)
@@ -25,12 +25,31 @@ class DataBase:
             self.collection.update_one({"_id": guild_id}, {"$set": {"team": listOfTeams}})
 
     def List_Teams(self, guild_id):
-        listOfTeamsArray = []
         for document in self.collection.find({"_id": guild_id, "team": {"$exists": True}}):
-            listOfTeamsArray = document['team']
+            self.listOfTeams = document['team']
 
-        if len(listOfTeamsArray) > 0:
-            self.listOfTeams = "\n".join(listOfTeamsArray)
+        if len(self.listOfTeams) > 0:
             return True
         else:
             return False
+
+    def Define_Text_Channel(self, guild_id, channel_id):
+        self.collection.update_one({"_id": guild_id}, {"$set": {"textChannelID": channel_id}})
+
+    def Get_Text_Channel(self, guild_id):
+        id = None
+        for document in self.collection.find({"_id": guild_id, "textChannelID": {"$exists": True}}):
+            id = document['textChannelID']
+
+        if id is None:
+            return None
+        else:
+            return id
+
+    def Get_List_Teams_As_String(self, guild_id):
+        if self.List_Teams(guild_id):
+            return '\n'.join(self.listOfTeams)
+
+    def Get_List_Teams(self, guild_id):
+        if self.List_Teams(guild_id):
+            return self.listOfTeams
