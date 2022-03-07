@@ -57,6 +57,12 @@ async def add_team(ctx, team):
             twitterApp.Set_List_Of_Keywords(db.Get_List_Teams(ctx.guild.id))
 
 
+@client.command(aliases=['delete', 'del'])
+async def delete_team(ctx, team):
+    if not db.Delete_Team(ctx.guild.id, team):
+        await ctx.send("{0} doesn't exist.".format(team))
+
+
 @client.command(aliases=['list'])
 async def list_teams(ctx):
     if db.List_Teams(ctx.guild.id):

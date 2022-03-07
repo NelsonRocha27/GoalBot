@@ -33,6 +33,23 @@ class DataBase:
         else:
             return False
 
+    def Search_For_Team(self, guild_id, team):
+        cur = self.collection.find({"_id": guild_id, "team": team})
+
+        if cur.count() == 0:
+            print("Team doesn't exist.")
+            return False
+        else:
+            return True
+
+    def Delete_Team(self, guild_id, team):
+        teamDB = self.Search_For_Team(guild_id, team)
+        if teamDB:
+            self.collection.update_one({"_id": guild_id}, {"$pull": {"team": team}})
+            return True
+        else:
+            return False
+
     def Define_Text_Channel(self, guild_id, channel_id):
         self.collection.update_one({"_id": guild_id}, {"$set": {"textChannelID": channel_id}})
 
