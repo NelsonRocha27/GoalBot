@@ -1,2 +1,2 @@
-web: python main.py runserver 0.0.0.0=$PORT
+web: python main.py
 worker: python main.py
