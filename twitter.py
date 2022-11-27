@@ -119,12 +119,15 @@ class Twitter:
     def Check_If_Contains_Video(self):
         if hasattr(self.current_tweet, 'extended_tweet'):
             if 'extended_entities' in self.current_tweet.extended_tweet:
-                if 'video_info' in self.current_tweet.extended_tweet['extended_entities']['media'][0]:
+                if 'expanded_url' in self.current_tweet.extended_tweet['extended_entities']['media'][0]:
                     if self.current_tweet.created_at > self.last_tweet_time:
                         self.last_tweet_time = self.current_tweet.created_at
                         self.link = self.current_tweet.extended_tweet['extended_entities']['media'][0].get(
                             'expanded_url')
-                        return True
+                        if "/video/" in self.link:
+                            return True
+                        else:
+                            print('There is not a video link {0}.'.format(self.link))
                     else:
                         print('This tweet is older.')
                 else:
@@ -132,10 +135,14 @@ class Twitter:
             else:
                 print('There are no extended entities in tweet {0}.'.format(self.current_tweet))
         elif hasattr(self.current_tweet, 'extended_entities'):
-            if 'video_info' in self.current_tweet.extended_entities['media'][0]:
+            if 'expanded_url' in self.current_tweet.extended_entities['media'][0]:
                 if self.current_tweet.created_at > self.last_tweet_time:
                     self.last_tweet_time = self.current_tweet.created_at
                     self.link = self.current_tweet.extended_entities['media'][0].get('expanded_url')
+                    if "/video/" in self.link:
+                        return True
+                    else:
+                        print('There is not a video link {0}.'.format(self.link))
                     return True
                 else:
                     print('This tweet is older.')

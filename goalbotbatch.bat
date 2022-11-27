@@ -1,0 +1,1 @@
+C:\Users\nelso\source\repos\GoalBot\venv\Scripts\activate.bat && python C:\Users\nelso\source\repos\GoalBot\main.py
