@@ -15,6 +15,7 @@ class StreamListener(tweepy.Stream):
             return
         print(status)
         self.twitter.Set_Current_Tweet(status)
+        self.twitter.Set_Full_Text()
         if self.twitter.Check_If_Contains_Video():
             if self.twitter.Look_For_Keywords_In_Tweet():
                 self.twitter.new_tweet = True
@@ -40,6 +41,7 @@ class Twitter:
     new_tweet = False
     text_channel_id = None
     link = None
+    full_text = None
 
     def __init__(self, screen_names):
         load_dotenv()
@@ -110,6 +112,17 @@ class Twitter:
     def Get_Text_Channel_ID(self):
         return self.text_channel_id
 
+    def Set_Full_Text(self):
+        self.full_text = self.current_tweet.text
+        if hasattr(self.current_tweet, 'extended_tweet'):
+            if 'full_text' in self.current_tweet.extended_tweet:
+                print('full_text')
+                self.full_text = self.current_tweet.extended_tweet.get('full_text')
+                print(self.full_text)
+
+    def Get_Full_Text(self):
+        return self.full_text
+
     def Get_Tweet_Link(self):
         return self.link
 
@@ -117,6 +130,7 @@ class Twitter:
         self.list_of_keywords = list_of_keywords
 
     def Check_If_Contains_Video(self):
+        print('Checking for a video...')
         if hasattr(self.current_tweet, 'extended_tweet'):
             if 'extended_entities' in self.current_tweet.extended_tweet:
                 if 'expanded_url' in self.current_tweet.extended_tweet['extended_entities']['media'][0]:
@@ -125,6 +139,7 @@ class Twitter:
                         self.link = self.current_tweet.extended_tweet['extended_entities']['media'][0].get(
                             'expanded_url')
                         if "/video/" in self.link:
+                            print(self.link)
                             return True
                         else:
                             print('There is not a video link {0}.'.format(self.link))
@@ -140,10 +155,10 @@ class Twitter:
                     self.last_tweet_time = self.current_tweet.created_at
                     self.link = self.current_tweet.extended_entities['media'][0].get('expanded_url')
                     if "/video/" in self.link:
+                        print(self.link)
                         return True
                     else:
                         print('There is not a video link {0}.'.format(self.link))
-                    return True
                 else:
                     print('This tweet is older.')
             else:
@@ -156,10 +171,14 @@ class Twitter:
     def Look_For_Keywords_In_Tweet(self):
         if self.list_of_keywords is not None:
             for keyword in self.list_of_keywords:
-                if keyword in self.current_tweet.text:
+                print(keyword)
+                print(self.full_text)
+                if keyword in self.Get_Full_Text():
                     return True
         else:
             print('No list of keywords provided.')
+
+        print('This tweet has no wanted keywords.')
         return False
 
     def Set_Listener(self):
